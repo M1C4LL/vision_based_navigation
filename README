@@ -1,0 +1,37 @@
+Super Link zum Einstieg in Github:
+http://rogerdudler.github.io/git-guide/index.de.html
+
+Do once:
+
+# Set up your name (modify):
+$ git config --global user.name "YOUR NAME"
+
+# Set up your email-adress (modify):
+$ git config --global user.email "YOUR EMAIL ADDRESS"
+
+# Set git to use the credential memory cache for storing your password for github (just paste): 
+$ git config --global credential.helper cache
+
+# Set the cache to timeout after 1 hour (setting is in seconds) (just paste):
+$ git config --global credential.helper 'cache --timeout=3600'
+
+# Download the complete repository as folder "catkin_ws" into the current folder
+$ git clone https://github.com/M1C4LL/vision_based_navigation.git catkin_ws
+
+Remark: it is easiest if you use the repository folder directly as your catkin_ws.
+Just relocate your own catkin_ws for a minute, call the upper command to download catkin_ws at your favourite location (e.g. home) and then copy all the additional files you want to have in your catkin_ws into this new catkin_ws. Add all folders and files, which you do not want to get uploaded in the hidden file catkin_ws/.gitignore. So they are ignored during push and pull.
+
+
+commands for every day use:
+
+# Commit the modifications you made to your local git repository (modify):
+git commit -a -m 'COMMENT ABOUT THE MODIFICATIONS (starting lower case, first sentence as a short summary)'
+
+# Upload your modifications to master branch on github:
+$ git push https://github.com/M1C4LL/vision_based_navigation.git master
+
+# go back to current master (revert changes you made)
+$ git checkout master
+
+# go back to current master (revert changes you made, only one file)
+$ git checkout <commit> <file>
