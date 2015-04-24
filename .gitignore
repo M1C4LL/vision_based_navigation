@@ -1,0 +1,15 @@
+.DS_Store*
+Thumbs.db
+.project
+.classpath
+.settings
+*.swp
+target/**/*
+target/*
+build/**/*
+devel/**/*
+src/beginner_tutorials/*
+src/learning_tf/*
+src/using_markers/*
+src/point_cloud_creation/*
+

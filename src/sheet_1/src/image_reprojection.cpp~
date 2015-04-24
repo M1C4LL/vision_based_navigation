@@ -1,0 +1,80 @@
+#include <ros/ros.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <message_filters/subscriber.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
+
+using namespace std;
+using namespace sensor_msgs;
+using namespace message_filters;
+
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+
+ros::Publisher pub;
+
+void callback(const ImageConstPtr& image_color_msg, const ImageConstPtr& image_depth_msg, const CameraInfoConstPtr& info_color_msg, const CameraInfoConstPtr& info_depth_msg)
+{
+  cv::Mat image_color = cv_bridge::toCvCopy(image_color_msg)->image;
+  cv::Mat image_depth = cv_bridge::toCvCopy(image_depth_msg)->image;
+  
+  cvtColor(image_color, image_color, CV_RGB2BGR);
+
+  // get camera intrinsics
+  float fx = info_depth_msg->K[0];
+  float fy = info_depth_msg->K[4];
+  float cx = info_depth_msg->K[2];
+  float cy = info_depth_msg->K[5];
+
+  // Create point cloud
+  PointCloud::Ptr pointcloud_msg(new PointCloud);
+  pointcloud_msg->header = pcl_conversions::toPCL(image_depth_msg->header);
+
+  pcl::PointXYZ pt;
+  for(int y=0;y<image_color.rows;y+=4)
+  {
+    for(int x=0;x<image_color.cols;x+=4)
+    {
+      float depth = image_depth.at<short int>(cv::Point(x,y)) / 1000.0;
+      if(depth>0)
+      {
+        pt.x = (x - cx) * depth / fx;
+	pt.y = (y - cy) * depth / fy;
+	pt.z = depth;
+	//cout << pt.x<<" "<<pt.y<<" "<<pt.z<<endl;
+	pointcloud_msg->points.push_back (pt);
+      }
+    }
+  }
+  pointcloud_msg->height = 1;
+  pointcloud_msg->width = pointcloud_msg->points.size();
+  pub.publish(pointcloud_msg);
+}
+
+int main(int argc, char** argv)
+{
+  cout << "image_reprojection started!"<<endl;
+  ros::init(argc, argv, "image_reprojection");
+
+  ros::NodeHandle nh;
+
+  message_filters::Subscriber<Image> image_color_sub(nh, "/camera/rgb/image_color", 1);
+  message_filters::Subscriber<Image> image_depth_sub(nh, "/camera/depth/image", 1);
+  message_filters::Subscriber<CameraInfo> camera_info_color_sub(nh, "/camera/rgb/camera_info", 1);
+  message_filters::Subscriber<CameraInfo> camera_info_depth_sub(nh, "/camera/depth/camera_info", 1);
+  pub = nh.advertise<PointCloud>("/rgbd_pointcloud", 1);
+
+  typedef sync_policies::ApproximateTime<Image, Image, CameraInfo, CameraInfo> syncPolicies;
+  Synchronizer<syncPolicies> sync(syncPolicies(10), image_color_sub, image_depth_sub, camera_info_color_sub, camera_info_depth_sub);
+  
+  sync.registerCallback(boost::bind(&callback, _1, _2, _3, _4));
+
+  ros::spin();
+
+  return 0;
+}
