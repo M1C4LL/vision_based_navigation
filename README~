@@ -15,7 +15,7 @@ $ git config --global credential.helper cache
 # Set the cache to timeout after 1 hour (setting is in seconds) (just paste):
 $ git config --global credential.helper 'cache --timeout=3600'
 
-# Download the complete repository as folder "catkin_ws" in the current folder
+# Download the complete repository as folder "catkin_ws" into the current folder
 $ git clone https://github.com/M1C4LL/vision_based_navigation.git catkin_ws
 
 Remark: it is easiest if you use the repository folder directly as your catkin_ws.
@@ -24,13 +24,16 @@ Just relocate your own catkin_ws for a minute, call the upper command to downloa
 
 commands for every day use:
 
+# let git detect new files, which you created since your last commit.
+$ git add .
+
 # Commit the modifications you made to your local git repository (modify):
 git commit -a -m 'COMMENT ABOUT THE MODIFICATIONS (starting lower case, first sentence as a short summary)'
 
-# Upload your modifications to master branch on github:
+# Upload your modifications to master branch on github (just paste):
 $ git push https://github.com/M1C4LL/vision_based_navigation.git master
 
-# go back to current master (revert changes you made)
+# go back to current master (revert local changes you made)
 $ git checkout master
 
 # go back to current master (revert changes you made, only one file)
