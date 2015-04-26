@@ -1,0 +1,12 @@
+Use time of bag-file:
+ 
+set the use_sim_time parameter to true:
+- rosparam set use_sim_time true
+play your bag file with the argument --clock:
+- rosbag play xxxx.bag --clock
+
+
+transforms:
+
+$ rosrun tf view_frames
+$ evince frames.pdf

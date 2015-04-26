@@ -20,7 +20,7 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
 
   try
   {
-    // convert the picture to cvImagePtr
+    //convert the picture to cvImagePtr
     raw = cv_bridge::toCvCopy(image_color_msg, sensor_msgs::image_encodings::BGR8);
     undistorted = raw;
   }
@@ -112,15 +112,15 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "image_undistortion");
   ros::NodeHandle nh;
   
-  // filter image messages
+  //filter image messages
   message_filters::Subscriber<sensor_msgs::Image> image_color_sub(nh, "/camera/rgb/image_color", 1);
   message_filters::Subscriber<sensor_msgs::CameraInfo> camera_info_color_sub(nh, "/camera/rgb/camera_info", 1);
 
-  // advertise undistorted image
+  //advertise undistorted image
   pub = nh.advertise<sensor_msgs::Image> ("/camera/rgb/image_color_undistorted", 1);
 
-  // Use approximate time to sync messages
-  // ApproximateTime takes a queue size as its constructor argument, hence syncPolicies(10)
+  //Use approximate time to sync messages
+  //ApproximateTime takes a queue size as its constructor argument, hence syncPolicies(10)
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo> syncPolicies;
   message_filters::Synchronizer<syncPolicies> sync(syncPolicies(10), image_color_sub, camera_info_color_sub);
   sync.registerCallback(boost::bind(&callback, _1, _2));
