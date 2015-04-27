@@ -16,11 +16,13 @@
 #include <tf/transform_listener.h>
 #include <tf/tfMessage.h>
 
-using namespace std;
-
+// Type definition for the XYZRGB point cloud
 typedef pcl::PointCloud<pcl::PointXYZRGB> PointCloud;
 
+// Publisher for the point cloud in the camera frame
 ros::Publisher rgbd_pointcloud_camera;
+
+// Publisher for the point cloud in the world frame 
 ros::Publisher rgbd_pointcloud_world;
 
 //create Transform listener as a pointer (in order to be able to make it public)
@@ -30,109 +32,131 @@ ros::Publisher rgbd_pointcloud_world;
 //be able to start listening as soon as possible.
 tf::TransformListener* ptr_tf_listener = NULL;
 
+// Callback function, which will be executed for all subscribers to match messages based on their timestamp.
 void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_msgs::ImageConstPtr& image_depth_msg,
  const sensor_msgs::CameraInfoConstPtr& info_color_msg, const sensor_msgs::CameraInfoConstPtr& info_depth_msg)
 {
-  cout<< "Callback." << endl;
+  // Color image
   cv::Mat image_color = cv_bridge::toCvCopy(image_color_msg)->image;
-  cv::Mat image_depth = cv_bridge::toCvCopy(image_depth_msg)->image;
-  
-  //ros::Rate loop_rate(10);
-  //loop_rate.sleep();
 
+  // Depth image
+  cv::Mat image_depth = cv_bridge::toCvCopy(image_depth_msg)->image;
 
   // Set ROS default camera intrinsics
-  /*
-  float fx = info_depth_msg->K[0];
-  float fy = info_depth_msg->K[4];
-  float cx = info_depth_msg->K[2];
-  float cy = info_depth_msg->K[5];
-  */
   float fx = 525.0;
   float fy = 525.0;
   float cx = 319.5;
   float cy = 239.5;
 
-  // Create point cloud 1
+  // Create point cloud of camera frame
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud_msg_camera(new pcl::PointCloud<pcl::PointXYZRGB>);
+	
+  // Set header
   pointcloud_msg_camera->header = pcl_conversions::toPCL(image_depth_msg->header);
 
+  // Initialize XYZRGB point
   pcl::PointXYZRGB pt;
-  //do for all pixels
+
+  //Do for all pixels in the color image
   for(int y = 0; y < image_color.rows; y += 1)
   {
     for(int x = 0; x < image_color.cols; x += 1)
     {
-      //calculate the depth
+      // Calculate the depth
       float depth = image_depth.at<short int>(cv::Point(x,y)) / 1.0; // or factor = 5000 (according to vision.in.tum.de)
-      //use only valid points
+
+      // Use only valid points
       if(depth > 0)
       {
-        //assign position
+        // Assign position
         pt.x = (x - cx) * depth / fx;
         pt.y = (y - cy) * depth / fy;
         pt.z = depth;
-        //assign color
+
+        // Assign color
         pt.r = image_color.at<cv::Vec3b>(cv::Point(x,y))[0];
         pt.g = image_color.at<cv::Vec3b>(cv::Point(x,y))[1];
         pt.b = image_color.at<cv::Vec3b>(cv::Point(x,y))[2];
+
+	// Insert point into point cloud
         pointcloud_msg_camera->points.push_back (pt);
       }
     }
   }
+
+  // Set pointcloud parameters
   pointcloud_msg_camera->height = 1;
   pointcloud_msg_camera->width = pointcloud_msg_camera->points.size();
 
-  cout<< "PCL created" << endl;
-
+  // Create point cloud of world frame
   pcl::PointCloud<pcl::PointXYZRGB>::Ptr pointcloud_msg_world(new pcl::PointCloud<pcl::PointXYZRGB>);
+  
+  // Set header
   pointcloud_msg_world->header = pcl_conversions::toPCL(image_depth_msg->header);
+
+  // Initialize transform for the transformation to the world frame
+  tf::StampedTransform transform;
 
   try
   {
-    cout<< "Try2." << endl;
-    ptr_tf_listener->waitForTransform("/world", pcl_conversions::toPCL(image_depth_msg->header).frame_id, image_color_msg->header.stamp, ros::Duration(5.0));
-    //ptr_tf_listener->waitForTransform("/world", "/kinect", now, ros::Duration(0.001));
+    // Set timestamp
+    ros::Time now = image_depth_msg->header.stamp;
 
-    pcl_ros::transformPointCloud("/world", *pointcloud_msg_camera, *pointcloud_msg_world, *ptr_tf_listener);
-    cout << "yeah, worked!!" << endl;
-    // Create point cloud 2
+    // Wait for transform
+    ptr_tf_listener->waitForTransform("/world", pcl_conversions::toPCL(image_depth_msg->header).frame_id, now, ros::Duration(5.0));
+
+    // Get transform
+    ptr_tf_listener->lookupTransform("/world", pcl_conversions::toPCL(image_depth_msg->header).frame_id, now, transform);
+     
+    // Transform point cloud to world frame
+    pcl_ros::transformPointCloud<pcl::PointXYZRGB>(*pointcloud_msg_camera, *pointcloud_msg_world, transform);
   }
   catch (tf::TransformException &ex)
   {
-    cout<< "Catch2." << endl;
     ROS_ERROR("%s",ex.what());
     ros::Duration(1.0).sleep();
   }
+
+  // Publish point cloud based on camera frame
   rgbd_pointcloud_camera.publish(pointcloud_msg_camera);
+
+  // Publish point cloud based on world frame
   rgbd_pointcloud_world.publish(pointcloud_msg_world);
-  cout<< "PCL transformed and published" << endl;
+
+  std::cout<< "PCL transformed and published" << std::endl;
 }
 
 int main(int argc, char** argv)
 {
+  // Initialize ROS
   ros::init(argc, argv, "image_reprojection");
+
+  // Create transform listener
   ptr_tf_listener = new (tf::TransformListener);
 
   ros::NodeHandle nh;
 
-  cout << "image_reprojection node started." << endl;
+  std::cout << "image_reprojection node started." << std::endl;
 
+  // Initialize Subscriber as message filters
   message_filters::Subscriber<sensor_msgs::Image> image_color_sub(nh, "/camera/rgb/image_color", 1);
   message_filters::Subscriber<sensor_msgs::Image> image_depth_sub(nh, "/camera/depth/image", 1);
   message_filters::Subscriber<sensor_msgs::CameraInfo> camera_info_color_sub(nh, "/camera/rgb/camera_info", 1);
   message_filters::Subscriber<sensor_msgs::CameraInfo> camera_info_depth_sub(nh, "/camera/depth/camera_info", 1);
-  //message_filters::Subscriber<tf::> tf_sub(nh, "/tf", 1);
-
+  
+  // Initialize publisher for the point clouds
   rgbd_pointcloud_world = nh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("/rgbd_pointcloud_world", 5);
   rgbd_pointcloud_camera = nh.advertise<pcl::PointCloud<pcl::PointXYZRGB> >("/rgbd_pointcloud_camera", 5);
 
+  // Initialize synchronization policies based on subscriber types
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::CameraInfo> syncPolicies;
   message_filters::Synchronizer<syncPolicies> sync(syncPolicies(10), image_color_sub, image_depth_sub, camera_info_color_sub, camera_info_depth_sub);
-
+  
+  // Register subscirber via callback function
   sync.registerCallback(boost::bind(&callback, _1, _2, _3, _4));
 
-  ros::spin(); // Run until interupted
+  // Run until interupted
+  ros::spin();
 
   return 0;
 }
