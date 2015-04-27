@@ -42,8 +42,8 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
   sensor_msgs::CameraInfo camera_info_msgs(*camera_info_color_msg);
   // Set Camera Info from calibration dataset 1:
   // Distortion D
-/*
-  camera_info_msgs.D[0] = 0.193921;
+
+  /*camera_info_msgs.D[0] = 0.193921;
   camera_info_msgs.D[1] = -0.384550;
   camera_info_msgs.D[2] = -0.005101;
   camera_info_msgs.D[3] = 0.003890;
@@ -103,14 +103,14 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
   camera_info_msgs.P[9] = 0.0;
   camera_info_msgs.P[10] = 1.0;
   camera_info_msgs.P[11] = 0.0;
-    
+   
   // Set calibrated camera informaton
   model.fromCameraInfo(camera_info_msgs);
 
   // Rectify image
   model.rectifyImage(raw->image, undistorted->image, CV_INTER_LINEAR);
 
-  // Rectify origin and corner points once
+  // Calculate distances of distorted VS undistorted 3d points
   if (once)
   {
     centerRect = model.rectifyPoint( center );
@@ -118,11 +118,30 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
     topRightRect = model.rectifyPoint( topRight );
     bottomLeftRect = model.rectifyPoint( bottomLeft );
     bottomRightRect = model.rectifyPoint( bottomRight );
-    std::cout << "center: " << center << " , centerRect" << centerRect << std::endl;
+
+    cv::Point3d distanceCenter = model.projectPixelTo3dRay( center ) - model.projectPixelTo3dRay( centerRect );
+    cv::Point3d distanceTopLeft = model.projectPixelTo3dRay( topLeft ) - model.projectPixelTo3dRay( topLeftRect );
+    cv::Point3d distanceTopRight = model.projectPixelTo3dRay( topRight ) - model.projectPixelTo3dRay( topRightRect );
+    cv::Point3d distanceBottomLeft = model.projectPixelTo3dRay( bottomLeft ) - model.projectPixelTo3dRay( bottomLeftRect );
+    cv::Point3d distanceBottomRight = model.projectPixelTo3dRay( bottomRight ) - model.projectPixelTo3dRay( bottomRightRect );
+    
+    std::cout << "distanceCenter: " << distanceCenter << std::endl;
+    std::cout << "distance : " << sqrt(distanceCenter.x*distanceCenter.x + distanceCenter.y*distanceCenter.y) << std::endl;
+    std::cout << "distanceTopLeft: " << distanceTopLeft << std::endl;
+    std::cout << "distance : " << sqrt(distanceTopLeft.x*distanceTopLeft.x + distanceTopLeft.y*distanceTopLeft.y) << std::endl;
+    std::cout << "distanceTopRight: " << distanceTopRight << std::endl;
+    std::cout << "distance : " << sqrt(distanceTopRight.x*distanceTopRight.x + distanceTopRight.y*distanceTopRight.y) << std::endl;
+    std::cout << "distanceBottomLeft: " << distanceBottomLeft << std::endl;
+    std::cout << "distance : " << sqrt(distanceBottomLeft.x*distanceBottomLeft.x + distanceBottomLeft.y*distanceBottomLeft.y) << std::endl;
+    std::cout << "distanceBottomRight: " << distanceBottomRight << std::endl;
+    std::cout << "distance : " << sqrt(distanceBottomRight.x*distanceBottomRight.x + distanceBottomRight.y*distanceBottomRight.y) << std::endl;
+ 
+    /*std::cout << "center: " << center << " , centerRect" << centerRect << std::endl;
     std::cout << "topLeft: " << topLeft << " , topLeftRect" << topLeftRect << std::endl;
     std::cout << "topRight: " << topRight << " , topRightRect" << topRightRect << std::endl;
     std::cout << "bottomLeft: " << bottomLeft << " , bottomLeftRect" << bottomLeftRect << std::endl;
     std::cout << "bottomRight: " << bottomRight << " , bottomRightRect" << bottomRightRect << std::endl;
+    */
     once = false;
   }
 
