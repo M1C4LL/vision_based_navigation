@@ -12,11 +12,19 @@
 
 ros::Publisher pub;
 image_geometry::PinholeCameraModel model;
+bool once = true;  
   
 void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_msgs::CameraInfoConstPtr& camera_info_color_msg)
 {
   cv_bridge::CvImagePtr raw;
   cv_bridge::CvImagePtr undistorted;
+  cv::Point2d center, topLeft, topRight, bottomLeft, bottomRight;
+  cv::Point2d centerRect, topLeftRect, topRightRect, bottomLeftRect, bottomRightRect;
+  center.x = 320; center.y = 240; 
+  topLeft.x = 0; topLeft.y = 0;
+  topRight.x = 640; topRight.y = 0;
+  bottomLeft.x = 0; bottomLeft.y = 480;
+  bottomRight.x = 640; bottomRight.y = 480;
 
   try
   {
@@ -34,6 +42,7 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
   sensor_msgs::CameraInfo camera_info_msgs(*camera_info_color_msg);
   // Set Camera Info from calibration dataset 1:
   // Distortion D
+/*
   camera_info_msgs.D[0] = 0.193921;
   camera_info_msgs.D[1] = -0.384550;
   camera_info_msgs.D[2] = -0.005101;
@@ -62,8 +71,8 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
   camera_info_msgs.P[9] = 0.0;
   camera_info_msgs.P[10] = 1.0;
   camera_info_msgs.P[11] = 0.0;
+*/
 
-/*
   // Set Camera Info from calibration dataset 2:
   // Distortion D
   camera_info_msgs.D[0] = 0.199634;
@@ -94,13 +103,28 @@ void callback(const sensor_msgs::ImageConstPtr& image_color_msg, const sensor_ms
   camera_info_msgs.P[9] = 0.0;
   camera_info_msgs.P[10] = 1.0;
   camera_info_msgs.P[11] = 0.0;
-*/
     
   // Set calibrated camera informaton
   model.fromCameraInfo(camera_info_msgs);
 
   // Rectify image
   model.rectifyImage(raw->image, undistorted->image, CV_INTER_LINEAR);
+
+  // Rectify origin and corner points once
+  if (once)
+  {
+    centerRect = model.rectifyPoint( center );
+    topLeftRect = model.rectifyPoint( topLeft );
+    topRightRect = model.rectifyPoint( topRight );
+    bottomLeftRect = model.rectifyPoint( bottomLeft );
+    bottomRightRect = model.rectifyPoint( bottomRight );
+    std::cout << "center: " << center << " , centerRect" << centerRect << std::endl;
+    std::cout << "topLeft: " << topLeft << " , topLeftRect" << topLeftRect << std::endl;
+    std::cout << "topRight: " << topRight << " , topRightRect" << topRightRect << std::endl;
+    std::cout << "bottomLeft: " << bottomLeft << " , bottomLeftRect" << bottomLeftRect << std::endl;
+    std::cout << "bottomRight: " << bottomRight << " , bottomRightRect" << bottomRightRect << std::endl;
+    once = false;
+  }
 
   // Publish undistorted image
   pub.publish(undistorted->toImageMsg());
