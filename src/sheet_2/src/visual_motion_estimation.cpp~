@@ -136,7 +136,7 @@ int main(int argc, char** argv)
 
   ros::NodeHandle nh;
 
-  std::cout << "visual_motion_estimation node started." << std::endl;
+  std::cout << "image_reprojection node started." << std::endl;
 
   // Initialize Subscriber as message filters
   message_filters::Subscriber<sensor_msgs::Image> image_color_sub(nh, "/camera/rgb/image_color", 1);
