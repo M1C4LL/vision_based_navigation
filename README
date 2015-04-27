@@ -16,7 +16,7 @@ $ git config --global credential.helper cache
 $ git config --global credential.helper 'cache --timeout=3600'
 
 # Download the complete repository as folder "catkin_ws" into the current folder
-$ git clone https://github.com/M1C4LL/vision_based_navigation.git catkin_ws
+$ git clone https://M1C4LL@bitbucket.org/M1C4LL/vision_based_navigation.git catkin_ws
 
 Remark: it is easiest if you use the repository folder directly as your catkin_ws.
 Just relocate your own catkin_ws for a minute, call the upper command to download catkin_ws at your favourite location (e.g. home) and then copy all the additional files you want to have in your catkin_ws into this new catkin_ws. Add all folders and files, which you do not want to get uploaded in the hidden file catkin_ws/.gitignore. So they are ignored during push and pull.

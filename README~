@@ -36,5 +36,5 @@ $ git push https://github.com/M1C4LL/vision_based_navigation.git master
 # go back to current master (revert local changes you made)
 $ git checkout master
 
-# go back to current master (revert changes you made, only one file)
+# go back to current master (revert local changes you made, only one file)
 $ git checkout <commit> <file>
